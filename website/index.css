@@ -181,6 +181,22 @@ ul li a:hover + .hidden, .hidden:hover {
     display: none;
 }
 
+.team-names {
+    text-align: center;
+}
+
+#team-title {
+    font-weight: bold;
+    font-size: 18px;
+    border-bottom: 2px solid white;
+    margin: 0;
+}
+
+#team-names {
+    font-size: 18px;
+    margin-top: 10px;
+}
+
 #meetings {
     width: 75%;
 }
@@ -194,7 +210,7 @@ ul li a:hover + .hidden, .hidden:hover {
     color: white;
     display: none;
     text-align: center;
-    margin: .45vmax;
+    margin: .75vmax;
 }
 
 #footer-contact {
