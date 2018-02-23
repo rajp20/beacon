@@ -1,6 +1,6 @@
 body {
-    font-family: 'Jura', sans-serif;
-    background-color: #3b3d44;
+    font-family: 'Lato', sans-serif;
+    background-color: #2b3b3b;
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -11,26 +11,25 @@ body {
 body::-webkit-scrollbar-track
 {
     border-radius: 10px;
-    background-color: #3b3d44;
+    background-color: #2b3b3b;
 }
 
 body::-webkit-scrollbar
 {
     width: 10px;
-    background-color: #3b3d44;
+    background-color: #2b3b3b;
 }
 
 body::-webkit-scrollbar-thumb
 {
     border-radius: 10px;
     -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
-    background-color: #2f3036;
+    background-color: #318181;
 }
 
 .title {
     color: white;
     margin-top: .75vmax;
-    text-align: center;
     display: none;
 }
 
@@ -45,6 +44,7 @@ body::-webkit-scrollbar-thumb
 
 #title-name {
     font-size: 35px;
+    font-weight: bold;
 }
 
 #title-contact {
@@ -96,12 +96,12 @@ li a {
     text-align: center;
     line-height: 50px;
     color: #fff;
-    background: #2f3036;
+    background: #174f4f;
     text-decoration: none;
 }
 /*Hover state for top level links*/
 li:hover a {
-    background: grey;
+    background: #318181;
     font-size: 20px;
 }
 /*Style for dropdown links*/
@@ -113,7 +113,7 @@ li:hover ul a {
 }
 /*Hover state for dropdown links*/
 li:hover ul a:hover {
-    background: grey;
+    background: #318181;
     color: #fff;
 }
 /*Hide dropdown links until they are needed*/
@@ -139,7 +139,7 @@ ul li a:hover + .hidden, .hidden:hover {
 .show-menu {
     text-decoration: none;
     color: #fff;
-    background: #3b3d44;
+    background: #2b3b3b;
     text-align: center;
     padding: 10px 0;
     display: none;
@@ -175,26 +175,75 @@ ul li a:hover + .hidden, .hidden:hover {
     min-height: 70vh;
     margin: 1vmax;
     color: white;
+    width: 90%;
 }
 
 .content-noshow {
     display: none;
 }
 
-.team-names {
+.center-text {
     text-align: center;
 }
 
-#team-title {
+.home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.home-container div {
+    margin-bottom: 10px;
+}
+
+.home-container p {
+    font-size: 18px;
+    margin: 10px;
+}
+
+.abstract-text-container {
+    width: 900px;
+    max-width: 100%;
+}
+
+.justify-text {
+    text-align: justify;
+}
+
+.current-state-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.current-state-text-container {
+    width: 600px;
+    max-width: 100%;
+}
+
+.sub-title {
     font-weight: bold;
     font-size: 18px;
     border-bottom: 2px solid white;
     margin: 0;
 }
 
-#team-names {
+.sub-title-1 {
+    font-weight: bold;
     font-size: 18px;
+    margin: 0;
+}
+
+#team-names {
     margin-top: 10px;
+}
+
+.team-names-container {
+    width: 420px;
+    max-width: 100%;
 }
 
 #meetings {

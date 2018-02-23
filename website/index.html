@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Life Uncovered.</title>
+    <title>Avalanche Beacon</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link href="https://fonts.googleapis.com/css?family=Jura" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -13,9 +13,9 @@
 
 </head>
 <body>
-<div class="title" id="title">
-    <p id="title-name">Avalanche Beacon</p>
-    <p id="title-contact">"Life Uncovered."</p>
+<div class="title center-text" id="title">
+    <p id="title-name">AVALANCHE BEACON</p>
+    <p id="title-contact">"A beacon of hope."</p>
 </div>
 <div id="top-nav-bar" class="top-nav-bar">
     <ul id="menu">
@@ -26,9 +26,44 @@
 </div>
 
 <div id="home" class="content content-noshow">
-    <div class="team-names">
-        <p id="team-title">TEAM</p>
-        <p id="team-names">Raj Patel &mdash; Blaze Kotsenburg &mdash; Jake Maschoff</p>
+    <div class="home-container">
+        <div class="center-text team-names-container">
+            <p class="sub-title">TEAM</p>
+            <p id="team-names">Raj Patel &mdash; Blaze Kotsenburg &mdash; Jake Maschoff</p>
+        </div>
+        <div class="center-text abstract-text-container">
+            <p class="sub-title-1">ABSTRACT</p>
+            <p class="justify-text">
+                Avalanche beacons can often be the deciding factor between life and death in the event of an avalanche.
+                Although proven to work, the overall efficiency of avalanche beacons has remained stagnant over the past
+                several decades.  Our goal as a team is to improve the efficiency of the avalanche beacon so that the
+                process of finding a buried victim is much faster than its current state.  Many strategies and
+                approaches are currently being researched by our team in order to find out how exactly this goal can be
+                accomplished.  Some of our most promising approaches involve implementing a beacon with data that can
+                be sent through radio waves, implementing an ad-hoc wireless network, and algorithms to calculate the
+                final position of the victim based trajectory from the slide.  Nevertheless,  one of our team’s main
+                priorities is to retain backwards compatibility in order to operate in unison with any beacon.
+            </p>
+        </div>
+        <div class="center-text current-state-container">
+            <div class="current-state-text-container">
+                <p class="sub-title-1">CURRENT STATE</p>
+                <p class="justify-text">Modern avalanche beacons (transceivers) operate at a 457kHz frequency.  All beacons have two modes
+                    in which they operate.  Those two modes are transmit and receive.  When a beacon is operating in
+                    transmit mode, the beacon emits a low-power pulse.  When in receive mode, beacons will be able to
+                    pick up the pulse emitted from a different beacon operating in transmit mode.  Whenever a beacon
+                    detects a signal, the beacon will point the user in the direction that the signal was transmitted
+                    from.
+                    <br><br>
+                    Some modern beacons have been implemented with technologies such as vitals detection.  This allows
+                    users to determine whether a victim buried under the snow is alive or deceased.  This gives the
+                    user the ability to continue searching for other buried victims instead of consuming valuable time
+                    unburying a deceased victim.  Though this technology can be extremely useful in a lot of cases, it
+                    doesn’t improve the overall time in which it takes to find a buried victim.
+                </p>
+            </div>
+            <img style="height: 200px; margin: 100px;" src="images/beacon.png">
+        </div>
     </div>
 </div>
 
