@@ -172,9 +172,9 @@ void I2C_Init() {
 }
 
 void USART_Init() {	
-		// Set GPIO pins PC4 and PC5 to AFM. 
-  GPIOC->MODER |= (1 << 9) | (1 << 11);
-  //GPIOB->MODER &= ~((1 << 20) | (1 << 22));
+    // Set GPIO pins PC4 and PC5 to AFM.
+    GPIOC->MODER |= (1 << 9) | (1 << 11);
+    //GPIOB->MODER &= ~((1 << 20) | (1 << 22));
 	
 	// Set AFM for PC4 & 5.
 	GPIOC->AFR[0] |= (1 << 20) | (1 << 16);
@@ -192,7 +192,7 @@ void USART_Init() {
 }
 
 void LED_Init() {
-	  //  LED CONFIGURATION 
+    //  LED CONFIGURATION
 	GPIOC->MODER 		|= (1 << 12) | (1 << 14) | (1 << 16) | (1 << 18);
 	GPIOC->MODER 		&= ~((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
 	GPIOC->OTYPER 	&= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
@@ -203,14 +203,11 @@ void LED_Init() {
 
 void SPI_Init() {
 	// SET UP PINS
-	// PA4 - SPI1_NSS
-	// PA5 - SPI1_SCK
-	// PA6 - SPI1_MISO
-	// PA7 - SPI1_MOSI
 	
-	// Setting pins PA4 to PA7 on Alternate function MOde to 0.
-	GPIOB->MODER |= (1 << 15) | (1 << 13) | (1 << 11) | (1 << 9);
-	
+	// Setting pins PB3 to PB5 (SPI1_SCK, SPI1_MISO, & SPI1_MOSI respectively) on Alternate function Mode
+	GPIOB->MODER |= (1 << 7) | (1 << 9) | (1 << 11);
+    // Set pin PA15 to alternate function mode for SPI1_NSS
+    GPIOA->MODER |= (1 << 31);
 	
 	// SPI Enabled 
 	SPI1->CR1 |= (1 << 6);
@@ -238,15 +235,15 @@ int main(void)
   SystemClock_Config();
   
 	// Enable the RCC for USART
-  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
+    RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;	
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;	
 	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
-	
+    // RCC->APB1ENR |= RCC_APB1ENR_I2C2EN; likely need a line like this to set up a clock for SPI
+
 	LED_Init();
 	USART_Init();
-  
 
 	GPIOB->MODER |= (1 << 23) | (1 << 27) | (1 << 28);
 	GPIOC->MODER |= 1;
