@@ -38,6 +38,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#define RED 6
+#define GREEN 9
+#define ORANGE 8
+#define BLUE 7
+
 
 /* USER CODE BEGIN Includes */
 
@@ -91,60 +96,8 @@ int compare(char* left, char* right, int length) {
 	return 1;
 }
 
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  *
-  * @retval None
-  */
-int main(void)
-{
-	HAL_Init();
-  SystemClock_Config();
-  
-  // Enable the RCC for USART
-  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
-  RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
-	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
-
-	
-	// Set GPIO pins PC4 and PC5 to AFM.
-  GPIOC->MODER |= (1 << 9) | (1 << 11);
-  //GPIOB->MODER &= ~((1 << 20) | (1 << 22));
-	
-	// Set AFM for PC4 & 5.
-	GPIOC->AFR[0] |= (1 << 20) | (1 << 16);
-	
-	// Set the baud rate of USART3
-	USART3->BRR = HAL_RCC_GetHCLKFreq() / 115200;
-	
-	// Enable RX and TX in USART3
-	USART3->CR1 |= (1 << 2) | (1 << 3) | (1 << 5);
-	
-	// Enable USART3	
-	USART3->CR1 |= (1 << 0);
-	
-	NVIC_EnableIRQ(USART3_4_IRQn);
-  
-  //  LED CONFIGURATION 
-	GPIOC->MODER 		|= (1 << 12) | (1 << 14) | (1 << 16) | (1 << 18);
-	GPIOC->MODER 		&= ~((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
-	GPIOC->OTYPER 	&= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
-	GPIOC->OSPEEDR 	&= ~((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
-	GPIOC->PUPDR		&= ~((1 << 12) | (1 << 13) | (1 << 14) | (1 << 15) |
-											 (1 << 16) | (1 << 17) | (1 << 18) | (1 << 19));
-	
-	GPIOB->MODER |= (1 << 23) | (1 << 27) | (1 << 28);
-	GPIOC->MODER |= 1;
-	GPIOB->OTYPER |= (1 << 13) | (1 << 11);
-	GPIOB->AFR[1] |= (1 << 12) | (1 << 20) | (1 << 22);
-	GPIOB->ODR |= (1 << 14);
-	GPIOC->ODR |= 1;
-	
-	
-	I2C2->TIMINGR |= (1 << 28) | (0x13) | (0xF << 8) | (0x2 << 16) | (0x4 << 20);
+void I2C_Init() {
+		I2C2->TIMINGR |= (1 << 28) | (0x13) | (0xF << 8) | (0x2 << 16) | (0x4 << 20);
 	// Enable the I2C peripheral using the PE bit in CR1 register
   I2C2->CR1 |= 1;
   
@@ -216,14 +169,97 @@ int main(void)
   
   // Wait for TC flag to set
   while (!(I2C_ISR_TC & I2C2->ISR)){ }
+}
+
+void USART_Init() {	
+		// Set GPIO pins PC4 and PC5 to AFM. 
+  GPIOC->MODER |= (1 << 9) | (1 << 11);
+  //GPIOB->MODER &= ~((1 << 20) | (1 << 22));
+	
+	// Set AFM for PC4 & 5.
+	GPIOC->AFR[0] |= (1 << 20) | (1 << 16);
+	
+	// Set the baud rate of USART3
+	USART3->BRR = HAL_RCC_GetHCLKFreq() / 115200;
+	
+	// Enable RX and TX in USART3
+	USART3->CR1 |= (1 << 2) | (1 << 3) | (1 << 5);
+	
+	// Enable USART3	
+	USART3->CR1 |= (1 << 0);
+	
+	NVIC_EnableIRQ(USART3_4_IRQn);
+}
+
+void LED_Init() {
+	  //  LED CONFIGURATION 
+	GPIOC->MODER 		|= (1 << 12) | (1 << 14) | (1 << 16) | (1 << 18);
+	GPIOC->MODER 		&= ~((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
+	GPIOC->OTYPER 	&= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
+	GPIOC->OSPEEDR 	&= ~((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
+	GPIOC->PUPDR		&= ~((1 << 12) | (1 << 13) | (1 << 14) | (1 << 15) |
+											 (1 << 16) | (1 << 17) | (1 << 18) | (1 << 19));
+}
+
+void SPI_Init() {
+	// SET UP PINS
+	// PA4 - SPI1_NSS
+	// PA5 - SPI1_SCK
+	// PA6 - SPI1_MISO
+	// PA7 - SPI1_MOSI
+	
+	// Setting pins PA4 to PA7 on Alternate function MOde to 0.
+	GPIOB->MODER |= (1 << 15) | (1 << 13) | (1 << 11) | (1 << 9);
+	
+	
+	// SPI Enabled 
+	SPI1->CR1 |= (1 << 6);
+	
+	// set up SPI for full-duplex mode (bit 10 = 0)
+	SPI1->CR1 &= ~(1 << 10);
+	
+	// CPOL 0 and CPHA 0, first rising edge
+	SPI1->CR1 &= ~((1 << 1) | (1 << 0));
+
+	// Set Master Config.
+	SPI1->CR1 |= (1 << 2);
+}
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  *
+  * @retval None
+  */
+int main(void)
+{
+	HAL_Init();
+  SystemClock_Config();
+  
+	// Enable the RCC for USART
+  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;	
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;	
+	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
+	
+	LED_Init();
+	USART_Init();
+  
+
+	GPIOB->MODER |= (1 << 23) | (1 << 27) | (1 << 28);
+	GPIOC->MODER |= 1;
+	GPIOB->OTYPER |= (1 << 13) | (1 << 11);
+	GPIOB->AFR[1] |= (1 << 12) | (1 << 20) | (1 << 22);
+	GPIOB->ODR |= (1 << 14);
+	GPIOC->ODR |= 1;
+	
+	I2C_Init();
+	SPI_Init();
   
   int16_t X_axis;
   int16_t Y_axis;
-	
-	int RED = 6;
-	int GREEN = 9;
-	int ORANGE = 8;
-	int BLUE = 7;
 	
 	while(1) {
 		 // Wait 100 ms
@@ -353,17 +389,21 @@ int main(void)
     while (!(I2C_ISR_TC & I2C2->ISR)){ }
 		
 		if (X_axis > 5000) {
+			sendString("RIGHT");
 			GPIOC->ODR |= (1 << GREEN);
 			GPIOC->ODR &= ~(1 << ORANGE);
 		} else if (X_axis < -5000) {
+			sendString("LEFT");
 			GPIOC->ODR |= (1 << ORANGE);
 			GPIOC->ODR &= ~(1 << GREEN);
 		}
 		
 		if (Y_axis > 5000) {
+			sendString("TOP");
 			GPIOC->ODR |= (1 << RED);
 			GPIOC->ODR &= ~(1 << BLUE);
 		} else if (Y_axis < -5000) {
+			sendString("BOTTOM");
 			GPIOC->ODR |= (1 << BLUE);
 			GPIOC->ODR &= ~(1 << RED);
 		}
