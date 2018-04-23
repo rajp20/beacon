@@ -77,6 +77,10 @@ void USART3_4_IRQHandler() {
 	inputFlag = 1;
 }
 
+void SPI1_IRQHandler() {
+	
+}
+
 void turnOff(int LED){
   GPIOC->ODR &= ~(1 << LED);
 }
@@ -254,7 +258,7 @@ void SPI_Init() {
 	// Setting pins PB3 to PB5 (SPI1_SCK, SPI1_MISO, & SPI1_MOSI respectively) on Alternate function Mode
 	GPIOB->MODER |= (1 << 7) | (1 << 9) | (1 << 11);
 	
-  // Set pin PA15 to alternate function mode for SPI1_NSS
+  // Set pin PA15 to alternate function mode for SPI1_NSS ** don't think we need this **
   GPIOA->MODER |= (0x2u << 30);
 	
 	/********* Write to SP1_CR1 register *********/
@@ -294,9 +298,16 @@ void SPI_Init() {
 	// c) FRF set to TI mode
 	SPI1->CR2 |= (1 << 4);
 	
+	// Enable the interrupts for getting an interrupt of data received
+	SPI2->CR2 |= (1 << 6);
+	
 	// e) FRXTH (RXNE event is generated if the FIFO level is >= 1/4 ... 8-bit)
 	SPI1->CR2 |= (1 << 12);
+	
+	// Enable the interrupt for this SPI for reading data
+	NVIC_EnableIRQ(SPI1_IRQn);
 }
+
 
 /*
 *	Used for setting up the UART that is used by the GPS module
