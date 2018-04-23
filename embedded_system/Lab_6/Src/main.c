@@ -226,9 +226,8 @@ void SPI_Init() {
 
 	// Setting pins PB3 to PB5 (SPI1_SCK, SPI1_MISO, & SPI1_MOSI respectively) on Alternate function Mode
 	GPIOB->MODER |= (1 << 7) | (1 << 9) | (1 << 11);
-    // Set pin PA15 to alternate function mode for SPI1_NSS
-    GPIOA->MODER |= (1 << 31);
-		// Warning here ^
+  // Set pin PA15 to alternate function mode for SPI1_NSS
+  GPIOA->MODER |= (0x2u << 30);
 	// SPI Enabled
 	SPI1->CR1 |= (1 << 6);
 
@@ -286,7 +285,7 @@ int main(void)
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
 	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
-    // RCC->APB1ENR |= RCC_APB1ENR_I2C2EN; likely need a line like this to set up a clock for SPI
+	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
 
 	LED_Init();
 	USART_Init();
