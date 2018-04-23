@@ -88,6 +88,7 @@ void turnOn(int LED){
 }
 
 void USART1_IRQHandler() {
+	turnOn(ORANGE);
 	inputChar = USART1->RDR;
 	GPS_msg[current_index++] = inputChar;
 
