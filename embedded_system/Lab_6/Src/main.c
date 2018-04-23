@@ -91,6 +91,8 @@ void USART1_IRQHandler() {
 	turnOn(ORANGE);
 	inputChar = USART1->RDR;
 	GPS_msg[current_index++] = inputChar;
+	
+	sendChar(inputChar);
 
 	// If a new line character is reached, then we know that all the data has been read by the module
 	if (inputChar == '\n'){
@@ -280,7 +282,7 @@ void UART_GPS_Init(){
 	// Set BAUD rate to 9600 bits/sec
 	USART1->BRR = HAL_RCC_GetHCLKFreq() / 9600;
 
-	// Enable RX and TX in USART1 and disable the interrupt flag to start.
+	// Enable RX and TX in USART1 and enable the interrupt flag to start
 	USART1->CR1 |= (1 << 2) | (1 << 3) | (1 << 5);
 
 	// Now turn on the USART
