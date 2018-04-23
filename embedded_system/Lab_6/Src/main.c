@@ -253,19 +253,49 @@ void SPI_Init() {
 
 	// Setting pins PB3 to PB5 (SPI1_SCK, SPI1_MISO, & SPI1_MOSI respectively) on Alternate function Mode
 	GPIOB->MODER |= (1 << 7) | (1 << 9) | (1 << 11);
+	
   // Set pin PA15 to alternate function mode for SPI1_NSS
   GPIOA->MODER |= (0x2u << 30);
+	
+	/********* Write to SP1_CR1 register *********/
+	
 	// SPI Enabled
 	SPI1->CR1 |= (1 << 6);
-
-	// set up SPI for full-duplex mode (bit 10 = 0)
-	SPI1->CR1 &= ~(1 << 10);
-
-	// CPOL 0 and CPHA 0, first rising edge
+	
+	// a) Set Baud Rate to fPCLK/256
+	SPI1->CR1 |= (0x7 << 3);
+	
+	// b) CPOL 0 and CPHA 0, first rising edge
 	SPI1->CR1 &= ~((1 << 1) | (1 << 0));
 
-	// Set Master Config.
+	// c) Set up SPI for Full-Duplex mode (bit 10 = 0)
+	SPI1->CR1 &= ~(1 << 10);
+	
+	// d) Set representation of bits to LSB first
+	SPI1->CR1 |= (1 << 7);
+	
+	// e) CRCEN: disabled, and CRCL: 8-bit
+	SPI1->CR1 &= ~((1 << 13) | (1 << 11));
+	
+	// f) SSM (software slave management) disabled
+	SPI1->CR1 &= ~(1 << 9);
+
+	// g) Set Master Config.
 	SPI1->CR1 |= (1 << 2);
+	
+	/********* Write to SP1_CR2 register *********/
+	
+	// a) Set DS[3:0] bits to 8-bit data length transfer
+	SPI1->CR2 |= (0x7 << 6);
+	
+	// b) SSOE enabled
+	SPI1->CR2 |= (1 << 2);
+	
+	// c) FRF set to TI mode
+	SPI1->CR2 |= (1 << 4);
+	
+	// e) FRXTH (RXNE event is generated if the FIFO level is >= 1/4 ... 8-bit)
+	SPI1->CR2 |= (1 << 12);
 }
 
 /*
