@@ -284,7 +284,7 @@ void UART_GPS_Init(){
 	USART1->CR1 |= (1 << 2) | (1 << 3) | (1 << 5);
 
 	// Now turn on the USART
-	USART1->CR1 |= 1;
+	USART1->CR1 |= (1 << 0);
 
 	// Enable the interrupt for this USART
 	NVIC_EnableIRQ(USART1_IRQn);
@@ -308,7 +308,7 @@ int main(void)
 
 	// Enable the RCC for USART
   RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
-	RCC->APB1ENR |= RCC_APB2ENR_USART1EN;
+	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
