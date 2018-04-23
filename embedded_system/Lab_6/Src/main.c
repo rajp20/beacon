@@ -64,17 +64,15 @@ void sendChar(char output);
 /* Private function prototypes -----------------------------------------------*/
 
 /* USER CODE END PFP */
-
-char inputChar;
 int inputFlag;
 
 // Used to store the GPS data that is read in from the module. The messages will never exceed 256 bytes
 // Current index will be used to insert into the appropiated position into the array
-char GPS_msg[257];
+char GPS_msg[256];
 int current_index;
 
 void USART3_4_IRQHandler() {
-	inputChar = USART3->RDR;
+	char inputChar = USART3->RDR;
 	sendChar(inputChar);
 	inputFlag = 1;
 }
@@ -89,15 +87,14 @@ void turnOn(int LED){
 
 void USART1_IRQHandler() {
 	turnOn(ORANGE);
-	inputChar = USART1->RDR;
-	GPS_msg[current_index++] = inputChar;
+	char input = USART1->RDR;
+	sendChar(input);
+	GPS_msg[current_index] = input;
+	current_index++;
 	
-	sendChar(inputChar);
-
 	// If a new line character is reached, then we know that all the data has been read by the module
-	if (inputChar == '\n'){
+	if (input == '\n'){
 		GPS_msg[current_index] = '\0';
-		sendString(GPS_msg);
 		current_index = 0;
 	}
 }
