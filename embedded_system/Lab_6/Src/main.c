@@ -79,6 +79,14 @@ void USART3_4_IRQHandler() {
 	inputFlag = 1;
 }
 
+void turnOff(int LED){
+  GPIOC->ODR &= ~(1 << LED);
+}
+
+void turnOn(int LED){
+  GPIOC->ODR |= (1 << LED);
+}
+
 void USART1_IRQHandler() {
 	inputChar = USART1->RDR;
 	GPS_msg[current_index++] = inputChar;
@@ -117,12 +125,27 @@ int compare(char* left, char* right, int length) {
 }
 
 void I2C_Init() {
-		I2C2->TIMINGR |= (1 << 28) | (0x13) | (0xF << 8) | (0x2 << 16) | (0x4 << 20);
+	
+	// Turn PB11 and PB13  to AFM, and PB14 to GPOM
+	GPIOB->MODER |= (1 << 23) | (1 << 27) | (1 << 28);
+	
+	// Turn on PC0 to GPOM
+	GPIOC->MODER |= 1;
+	GPIOB->OTYPER |= (1 << 13) | (1 << 11);
+	
+	// Turn on PB11 to I2C2_SDA and PB13 to I2C2_SCL
+	GPIOB->AFR[1] |= (1 << 12) | (1 << 20) | (1 << 22);
+	GPIOB->ODR |= (1 << 14);
+	GPIOC->ODR |= 1;
+	
+	// Set up standard I2C mode
+	I2C2->TIMINGR |= (1 << 28) | (0x13) | (0xF << 8) | (0x2 << 16) | (0x4 << 20);
+	
 	// Enable the I2C peripheral using the PE bit in CR1 register
   I2C2->CR1 |= 1;
 
   // Set the address to the correct peripheral.
-  I2C2->CR2 |= (0x6B << 1);
+  I2C2->CR2 = (0x6B << 1);
 
   // Set number of bytes to send to 1
   I2C2->CR2 |= (1 << 16);
@@ -138,6 +161,9 @@ void I2C_Init() {
   if ((I2C_ISR_TXIS & I2C2->ISR)){
     // GOOD
   }
+	
+	
+	turnOn(BLUE);
 
   // Send the correct WHO_AM_I information
   I2C2->TXDR = 0x0F;
@@ -212,7 +238,8 @@ void USART_Init() {
 }
 
 void LED_Init() {
-    //  LED CONFIGURATION
+  
+	//  LED CONFIGURATION
 	GPIOC->MODER 		|= (1 << 12) | (1 << 14) | (1 << 16) | (1 << 18);
 	GPIOC->MODER 		&= ~((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
 	GPIOC->OTYPER 	&= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
@@ -291,15 +318,15 @@ int main(void)
 	USART_Init();
 	UART_GPS_Init();
 
-	GPIOB->MODER |= (1 << 23) | (1 << 27) | (1 << 28);
-	GPIOC->MODER |= 1;
-	GPIOB->OTYPER |= (1 << 13) | (1 << 11);
-	GPIOB->AFR[1] |= (1 << 12) | (1 << 20) | (1 << 22);
-	GPIOB->ODR |= (1 << 14);
-	GPIOC->ODR |= 1;
+	turnOn(RED);
 
-	I2C_Init();
+	//I2C_Init();
+	
+	turnOn(BLUE);
+	
 	SPI_Init();
+	
+	turnOn(GREEN);
 
 	while(1) {
 		 // Wait 100 ms
