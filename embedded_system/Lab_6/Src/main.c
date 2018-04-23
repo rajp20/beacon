@@ -57,6 +57,8 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void sendString(char* output);
+void sendChar(char output);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -68,11 +70,12 @@ int inputFlag;
 
 // Used to store the GPS data that is read in from the module. The messages will never exceed 256 bytes
 // Current index will be used to insert into the appropiated position into the array
-char[257] GPS_msg;
+char GPS_msg[257];
 int current_index;
 
 void USART3_4_IRQHandler() {
 	inputChar = USART3->RDR;
+	sendChar(inputChar);
 	inputFlag = 1;
 }
 
@@ -225,7 +228,7 @@ void SPI_Init() {
 	GPIOB->MODER |= (1 << 7) | (1 << 9) | (1 << 11);
     // Set pin PA15 to alternate function mode for SPI1_NSS
     GPIOA->MODER |= (1 << 31);
-
+		// Warning here ^
 	// SPI Enabled
 	SPI1->CR1 |= (1 << 6);
 
@@ -278,7 +281,7 @@ int main(void)
 
 	// Enable the RCC for USART
   RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
-	RCC->APB1ENR |= RCC_APB1ENR_USART1EN;
+	RCC->APB1ENR |= RCC_APB2ENR_USART1EN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
@@ -299,11 +302,18 @@ int main(void)
 	I2C_Init();
 	SPI_Init();
 
-  int16_t X_axis;
-  int16_t Y_axis;
-
 	while(1) {
 		 // Wait 100 ms
+
+
+	}
+}
+
+void I2C_Gyro_Read(){
+	
+	  int16_t X_axis;
+		int16_t Y_axis;
+			
 		HAL_Delay(100);
 
     // Set the address to the correct peripheral.
@@ -450,7 +460,7 @@ int main(void)
 		}
 	}
 
-}
+
 
 /**
   * @brief System Clock Configuration
