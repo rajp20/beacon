@@ -71,14 +71,18 @@ int inputFlag;
 char GPS_msg[256];
 int current_index;
 
+char SPI_data;
+
 void USART3_4_IRQHandler() {
 	char inputChar = USART3->RDR;
 	sendChar(inputChar);
 	inputFlag = 1;
 }
 
-void SPI1_IRQHandler() {
-	
+void EXTI4_15_IRQHandler() {
+	if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
+		SPI_data = (uint8_t)SPI1->DR; 
+	}
 }
 
 void turnOff(int LED){
@@ -165,9 +169,6 @@ void I2C_Init() {
   if ((I2C_ISR_TXIS & I2C2->ISR)){
     // GOOD
   }
-	
-	
-	turnOn(BLUE);
 
   // Send the correct WHO_AM_I information
   I2C2->TXDR = 0x0F;
@@ -263,8 +264,6 @@ void SPI_Init() {
 	
 	/********* Write to SP1_CR1 register *********/
 	
-	// SPI Enabled
-	SPI1->CR1 |= (1 << 6);
 	
 	// a) Set Baud Rate to fPCLK/256
 	SPI1->CR1 |= (0x7 << 3);
@@ -295,8 +294,8 @@ void SPI_Init() {
 	// b) SSOE enabled
 	SPI1->CR2 |= (1 << 2);
 	
-	// c) FRF set to TI mode
-	SPI1->CR2 |= (1 << 4);
+	// c) FRF set to TI mode ** we want motorola mode I think ** 
+	// SPI1->CR2 |= (1 << 4);
 	
 	// Enable the interrupts for getting an interrupt of data received
 	SPI2->CR2 |= (1 << 6);
@@ -304,8 +303,27 @@ void SPI_Init() {
 	// e) FRXTH (RXNE event is generated if the FIFO level is >= 1/4 ... 8-bit)
 	SPI1->CR2 |= (1 << 12);
 	
-	// Enable the interrupt for this SPI for reading data
-	NVIC_EnableIRQ(SPI1_IRQn);
+	// SPI Enabled
+	SPI1->CR1 |= (1 << 6);
+	
+	/*			SPI EXTERNAL INTERRUPT SETUP 			*/
+	
+	GPIOB->PUPDR |= (1 << 25);
+	
+	
+	
+	// Enable EXTI0 to rising edge interrupt. 
+	EXTI->IMR |= (1 << 12);
+	EXTI->RTSR |= (1 << 12);
+
+	// Set the SYSCNFG to EXTI4, PB 12
+	SYSCFG->EXTICR[3] |= (1 << 0); 
+	
+	// Enable the EXIT0 interrupt line
+	NVIC_EnableIRQ(EXTI4_15_IRQn);
+	
+	// Set the priority to high for this interrupt. 
+	NVIC_SetPriority(EXTI4_15_IRQn, 3);
 }
 
 
@@ -359,15 +377,10 @@ int main(void)
 	USART_Init();
 	UART_GPS_Init();
 
-	turnOn(RED);
-
 	//I2C_Init();
 	
-	turnOn(BLUE);
 	
 	SPI_Init();
-	
-	turnOn(GREEN);
 
 	while(1) {
 		 // Wait 100 ms
