@@ -531,7 +531,7 @@ int main(void)
 		
 
 
-		//I2C_Gyro_Read();
+		I2C_Gyro_Read();
 
 	}
 }
@@ -661,21 +661,21 @@ void I2C_Gyro_Read(){
     while (!(I2C_ISR_TC & I2C2->ISR)){ }
 
 		if (X_axis > 5000) {
-			sendString("RIGHT");
+			//sendString("RIGHT");
 			GPIOC->ODR |= (1 << GREEN);
 			GPIOC->ODR &= ~(1 << ORANGE);
 		} else if (X_axis < -5000) {
-			sendString("LEFT");
+			//sendString("LEFT");
 			GPIOC->ODR |= (1 << ORANGE);
 			GPIOC->ODR &= ~(1 << GREEN);
 		}
 
 		if (Y_axis > 5000) {
-			sendString("TOP");
+			//sendString("TOP");
 			GPIOC->ODR |= (1 << RED);
 			GPIOC->ODR &= ~(1 << BLUE);
 		} else if (Y_axis < -5000) {
-			sendString("BOTTOM");
+			//sendString("BOTTOM");
 			GPIOC->ODR |= (1 << BLUE);
 			GPIOC->ODR &= ~(1 << RED);
 		}
