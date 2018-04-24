@@ -85,6 +85,20 @@ void LED_Toggle(int LED) {
 	GPIOC->ODR ^= (1 << LED);
 }
 
+
+void send_AD_HOC(char data){
+	while (!(((SPI1->SR & SPI_SR_TXE) == SPI_SR_TXE))) /* Test Tx empty */ { }
+	*(uint8_t *)&(SPI1->DR) = data; 
+}
+
+void send_AD_String(char* output) {
+	int i = 0;
+	while (output[i] != '\0') {
+		send_AD_HOC(output[i]);
+		i++;
+	}
+}
+
 /*
  * Turn off the given LED.
  */
@@ -112,6 +126,7 @@ void USART3_4_IRQHandler() {
 void EXTI4_15_IRQHandler() {
 	if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
 		SPI_data = (uint8_t)SPI1->DR; 
+		sendChar(SPI_data);
 	}
 }
 
@@ -476,21 +491,24 @@ int main(void)
 	
 	SPI_Init();
 
-	//turnOn(RED);
-
-	//I2C_Init();
-	
-	///turnOn(BLUE);
-	
-	SPI_Init();
-	
-	//turnOn(GREEN);
-	
 	TMR_Init();
+	
+	char opReg = 0x01;
+	
+	// Set write mode
+	opReg |= (1 << 7);
+	char intializationChar = 1;
+
+ // Wait 100 ms
+	sendString("TX\n");
+	send_AD_HOC(opReg);
+	send_AD_HOC(intializationChar);
+	
+	sendString("DN\n");
 
 	while(1) {
-		 // Wait 100 ms
 
+		
 
 	}
 }
