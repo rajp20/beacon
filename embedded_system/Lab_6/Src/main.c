@@ -59,6 +59,10 @@
 void SystemClock_Config(void);
 void sendString(char* output);
 void sendChar(char output);
+void LED_On(int);
+void LED_Off(int);
+void LED_Toggle(int);
+
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -68,9 +72,35 @@ int inputFlag;
 
 // Used to store the GPS data that is read in from the module. The messages will never exceed 256 bytes
 // Current index will be used to insert into the appropiated position into the array
-char GPS_msg[256];
+char GPS_buff[256];
+char GPS_protocol[8];
 int current_index;
 
+/*
+ * Toggle the given LED.
+ */
+void LED_Toggle(int LED) {
+	GPIOC->ODR ^= (1 << LED);
+}
+
+/*
+ * Turn off the given LED.
+ */
+void LED_Off(int LED){
+  GPIOC->ODR &= ~(1 << LED);
+}
+
+/*
+ * Turn on the given LED.
+ */
+void LED_On(int LED){
+  GPIOC->ODR |= (1 << LED);
+}
+
+
+/*
+ * USART handler.
+ */
 void USART3_4_IRQHandler() {
 	char inputChar = USART3->RDR;
 	sendChar(inputChar);
@@ -81,35 +111,61 @@ void SPI1_IRQHandler() {
 	
 }
 
-void turnOff(int LED){
-  GPIOC->ODR &= ~(1 << LED);
+/*
+ * TMR Handler. Parses and sends the data using the radio chip.
+ */
+void TIM2_IRQHandler (void) {
+ 
+  TIM2->SR = 0;
 }
 
-void turnOn(int LED){
-  GPIOC->ODR |= (1 << LED);
-}
-
+/*
+ * Handle GPS data
+ */
+int valid_GPS_data = 0;
 void USART1_IRQHandler() {
-	turnOn(ORANGE);
+	//turnOn(ORANGE);
 	char input = USART1->RDR;
-	sendChar(input);
-	GPS_msg[current_index] = input;
+	
+	if (current_index <= 8) {
+		GPS_protocol[current_index] = input;
+	}
 	current_index++;
+
+	if (current_index == 8) {
+		if (GPS_protocol[3] == 'G' && GPS_protocol[4] == 'G' && GPS_protocol[5] == 'A') {
+			valid_GPS_data = 1;
+		} else {
+			valid_GPS_data = 0;
+		}
+	}
+	
+	if (valid_GPS_data == 1) {
+		sendChar(input);
+		GPS_buff[current_index - 8] = input;
+	}
 	
 	// If a new line character is reached, then we know that all the data has been read by the module
 	if (input == '\n'){
-		GPS_msg[current_index] = '\0';
+		GPS_buff[current_index] = '\0';
 		current_index = 0;
+		valid_GPS_data = 0;
 	}
 }
 
 /* USER CODE BEGIN 0 */
 
+/*
+ * Print the char to USART.
+ */
 void sendChar(char output) {
 	while(!(USART3->ISR & USART_ISR_TXE)) {	}
 	USART3->TDR = output;
 }
 
+/*
+ * Print the given string to USART.
+ */
 void sendString(char* output) {
 	int i = 0;
 	while (output[i] != '\0') {
@@ -118,6 +174,9 @@ void sendString(char* output) {
 	}
 }
 
+/*
+ * Compare two strings. Return true/1 if the strings match, return false/0 otherwise.
+ */
 int compare(char* left, char* right, int length) {
 	int i;
 	for (i = 0; i < length; i++) {
@@ -128,6 +187,9 @@ int compare(char* left, char* right, int length) {
 	return 1;
 }
 
+/*
+ * Initialize I2C.
+ */
 void I2C_Init() {
 	
 	// Turn PB11 and PB13  to AFM, and PB14 to GPOM
@@ -167,7 +229,7 @@ void I2C_Init() {
   }
 	
 	
-	turnOn(BLUE);
+	//turnOn(BLUE);
 
   // Send the correct WHO_AM_I information
   I2C2->TXDR = 0x0F;
@@ -221,6 +283,9 @@ void I2C_Init() {
   while (!(I2C_ISR_TC & I2C2->ISR)){ }
 }
 
+/*
+ * Initialize the USART
+ */
 void USART_Init() {
     // Set GPIO pins PC4 and PC5 to AFM.
     GPIOC->MODER |= (1 << 9) | (1 << 11);
@@ -241,8 +306,10 @@ void USART_Init() {
 	NVIC_EnableIRQ(USART3_4_IRQn);
 }
 
-void LED_Init() {
-  
+/*
+ * Initalize LEDs
+ */
+void LED_Init() {  
 	//  LED CONFIGURATION
 	GPIOC->MODER 		|= (1 << 12) | (1 << 14) | (1 << 16) | (1 << 18);
 	GPIOC->MODER 		&= ~((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
@@ -252,6 +319,9 @@ void LED_Init() {
 											 (1 << 16) | (1 << 17) | (1 << 18) | (1 << 19));
 }
 
+/*
+ * Initialize SPI
+ */
 void SPI_Init() {
 	// SET UP PINS
 
@@ -333,6 +403,24 @@ void UART_GPS_Init(){
 	current_index = 0;
 }
 
+/*
+ * Initialize the timer. This will trigger data handeling for the GPS and send it to the
+ * other STM board. 
+ */
+void TMR_Init() {
+	  // Divide the clock by 8000, and then count to 125 so the clock operates at 4 Hz
+  TIM2->PSC = 19999;
+  TIM2->ARR = 400;
+	
+	// Enable the UEV events for this timer
+  TIM2->DIER = 1;
+	
+	// Configure and enable/start the timer
+  TIM2->CR1 |= TIM_CR1_CEN;
+	
+	// Enable the interrupt
+  NVIC_EnableIRQ(TIM2_IRQn);
+}
 
 /* USER CODE END 0 */
 
@@ -354,20 +442,24 @@ int main(void)
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
 	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
 	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+  RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
 	LED_Init();
 	USART_Init();
 	UART_GPS_Init();
 
-	turnOn(RED);
+	//turnOn(RED);
 
 	//I2C_Init();
 	
-	turnOn(BLUE);
+	///turnOn(BLUE);
 	
 	SPI_Init();
 	
-	turnOn(GREEN);
+	//turnOn(GREEN);
+	
+	TMR_Init();
 
 	while(1) {
 		 // Wait 100 ms
