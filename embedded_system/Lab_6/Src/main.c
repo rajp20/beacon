@@ -483,7 +483,7 @@ int main(void)
 	USART_Init();
 	UART_GPS_Init();
 
-	//I2C_Init();
+	I2C_Init();
 	SPI_Init();
 
 	TMR_Init();
