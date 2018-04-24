@@ -76,10 +76,8 @@ char GPS_buff[256];
 char GPS_protocol[8];
 int current_index;
 
-<<<<<<< HEAD
 char SPI_data;
 
-=======
 /*
  * Toggle the given LED.
  */
@@ -105,7 +103,6 @@ void LED_On(int LED){
 /*
  * USART handler.
  */
->>>>>>> 86089092aca0ecc0c6cf58d2b7cd2b60f7aa0a6f
 void USART3_4_IRQHandler() {
 	char inputChar = USART3->RDR;
 	sendChar(inputChar);
@@ -234,12 +231,10 @@ void I2C_Init() {
   if ((I2C_ISR_TXIS & I2C2->ISR)){
     // GOOD
   }
-<<<<<<< HEAD
-=======
+
 	
 	
 	//turnOn(BLUE);
->>>>>>> 86089092aca0ecc0c6cf58d2b7cd2b60f7aa0a6f
 
   // Send the correct WHO_AM_I information
   I2C2->TXDR = 0x0F;
@@ -476,12 +471,11 @@ int main(void)
 	USART_Init();
 	UART_GPS_Init();
 
-<<<<<<< HEAD
 	//I2C_Init();
 	
 	
 	SPI_Init();
-=======
+
 	//turnOn(RED);
 
 	//I2C_Init();
@@ -493,7 +487,6 @@ int main(void)
 	//turnOn(GREEN);
 	
 	TMR_Init();
->>>>>>> 86089092aca0ecc0c6cf58d2b7cd2b60f7aa0a6f
 
 	while(1) {
 		 // Wait 100 ms
