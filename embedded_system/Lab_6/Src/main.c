@@ -62,6 +62,7 @@ void sendChar(char output);
 void LED_On(int);
 void LED_Off(int);
 void LED_Toggle(int);
+void I2C_Gyro_Read(void);
 
 
 /* USER CODE BEGIN PFP */
@@ -459,6 +460,7 @@ void TMR_Init() {
   NVIC_EnableIRQ(TIM2_IRQn);
 }
 
+<<<<<<< HEAD
 /* USER CODE END 0 */
 
 /**
@@ -513,6 +515,11 @@ int main(void)
 	}
 }
 
+=======
+/*
+ * Read Gyro data via I2C.
+ */
+>>>>>>> 66342d832a30a78cb2bdfc80e6050918b946118c
 void I2C_Gyro_Read(){
 	
 	  int16_t X_axis;
@@ -576,15 +583,6 @@ void I2C_Gyro_Read(){
 
       // Wait for TC flag to set
     while (!(I2C_ISR_TC & I2C2->ISR)){ }
-
-
-
-
-    /*
-      Y DATA!
-
-    */
-
 
     // Set the address to the correct peripheral.
     I2C2->CR2 = (0x6B << 1);
@@ -662,7 +660,45 @@ void I2C_Gyro_Read(){
 			GPIOC->ODR |= (1 << BLUE);
 			GPIOC->ODR &= ~(1 << RED);
 		}
+}
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  *
+  * @retval None
+  */
+int main(void)
+{
+	HAL_Init();
+  SystemClock_Config();
+
+	// Enable the RCC for USART
+  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
+	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
+	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+  RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+
+	LED_Init();
+	USART_Init();
+	UART_GPS_Init();	
+	
+	I2C_Init();
+	SPI_Init();
+	
+	TMR_Init();
+
+	while(1) {
+		 // Wait 100 ms
+		I2C_Gyro_Read();
 	}
+}
 
 
 
