@@ -460,7 +460,6 @@ void TMR_Init() {
   NVIC_EnableIRQ(TIM2_IRQn);
 }
 
-<<<<<<< HEAD
 /* USER CODE END 0 */
 
 /**
@@ -488,9 +487,7 @@ int main(void)
 	USART_Init();
 	UART_GPS_Init();
 
-	//I2C_Init();
-	
-	
+	I2C_Init();
 	SPI_Init();
 
 	TMR_Init();
@@ -510,16 +507,14 @@ int main(void)
 
 	while(1) {
 
-		
+		I2C_Gyro_Read();
 
 	}
 }
 
-=======
 /*
  * Read Gyro data via I2C.
  */
->>>>>>> 66342d832a30a78cb2bdfc80e6050918b946118c
 void I2C_Gyro_Read(){
 	
 	  int16_t X_axis;
@@ -663,42 +658,6 @@ void I2C_Gyro_Read(){
 }
 
 /* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  *
-  * @retval None
-  */
-int main(void)
-{
-	HAL_Init();
-  SystemClock_Config();
-
-	// Enable the RCC for USART
-  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
-	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
-	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
-	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
-	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
-	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-  RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-
-	LED_Init();
-	USART_Init();
-	UART_GPS_Init();	
-	
-	I2C_Init();
-	SPI_Init();
-	
-	TMR_Init();
-
-	while(1) {
-		 // Wait 100 ms
-		I2C_Gyro_Read();
-	}
-}
 
 
 
