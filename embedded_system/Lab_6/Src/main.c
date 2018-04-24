@@ -87,9 +87,9 @@ void LED_Toggle(int LED) {
 }
 
 
-void send_AD_HOC(char data){
+void send_AD_HOC(uint16_t data){
 	while (!(((SPI1->SR & SPI_SR_TXE) == SPI_SR_TXE))) /* Test Tx empty */ { }
-	*(uint8_t *)&(SPI1->DR) = data; 
+	*(uint16_t *)&(SPI1->DR) = data; 
 }
 
 void send_AD_String(char* output) {
@@ -125,10 +125,7 @@ void USART3_4_IRQHandler() {
 }
 
 void EXTI4_15_IRQHandler() {
-	if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
-		SPI_data = (uint8_t)SPI1->DR; 
-		sendChar(SPI_data);
-	}
+	LED_On(RED);
 }
 
 /*
@@ -362,27 +359,28 @@ void SPI_Init() {
 	SPI1->CR1 &= ~((1 << 1) | (1 << 0));
 
 	// c) Set up SPI for Full-Duplex mode (bit 10 = 0)
-	SPI1->CR1 &= ~(1 << 10);
+		SPI1->CR1 &= ~(1 << 10);
 	
-	// d) Set representation of bits to LSB first
-	SPI1->CR1 |= (1 << 7);
 	
-	// e) CRCEN: disabled, and CRCL: 8-bit
-	SPI1->CR1 &= ~((1 << 13) | (1 << 11));
+	// d) Set the SSM bit so we can manually change the NSS bit
+	//SPI1->CR1 |= (1 << 9);
 	
-	// f) SSM (software slave management) disabled
-	SPI1->CR1 &= ~(1 << 9);
+	// e) Set to 1 so we can't send data 
+	//SPI1->CR1 |= (1 << 8);
 
 	// g) Set Master Config.
 	SPI1->CR1 |= (1 << 2);
 	
 	/********* Write to SP1_CR2 register *********/
 	
-	// a) Set DS[3:0] bits to 8-bit data length transfer
-	SPI1->CR2 |= (0x7 << 6);
+	// a) Set DS[3:0] bits to 16-bit data length transfer
+	SPI1->CR2 |= (0xF << 8);
 	
 	// b) SSOE enabled
 	SPI1->CR2 |= (1 << 2);
+	
+	// c) Enable NSSP bit for pulse generation
+	SPI1->CR2 |= (1 << 3);
 	
 	// c) FRF set to TI mode ** we want motorola mode I think ** 
 	// SPI1->CR2 |= (1 << 4);
@@ -390,8 +388,8 @@ void SPI_Init() {
 	// Enable the interrupts for getting an interrupt of data received
 	SPI2->CR2 |= (1 << 6);
 	
-	// e) FRXTH (RXNE event is generated if the FIFO level is >= 1/4 ... 8-bit)
-	SPI1->CR2 |= (1 << 12);
+	// e) FRXTH (RXNE event is generated if the FIFO level is >= 1/2 ... 16-bit)
+	SPI1->CR2 &= ~(1 << 12);
 	
 	// SPI Enabled
 	SPI1->CR1 |= (1 << 6);
@@ -399,8 +397,6 @@ void SPI_Init() {
 	/*			SPI EXTERNAL INTERRUPT SETUP 			*/
 	
 	GPIOB->PUPDR |= (1 << 25);
-	
-	
 	
 	// Enable EXTI0 to rising edge interrupt. 
 	EXTI->IMR |= (1 << 12);
@@ -487,27 +483,55 @@ int main(void)
 	USART_Init();
 	UART_GPS_Init();
 
-	I2C_Init();
+	//I2C_Init();
 	SPI_Init();
 
 	TMR_Init();
-	
-	char opReg = 0x01;
-	
-	// Set write mode
-	opReg |= (1 << 7);
-	char intializationChar = 1;
 
  // Wait 100 ms
-	sendString("TX\n");
-	send_AD_HOC(opReg);
-	send_AD_HOC(intializationChar);
+ 
+ 		uint16_t opReg = 0;
+		opReg |= (1 << 8);
 	
-	sendString("DN\n");
+		// Set write mode
+		opReg |= (1 << 15);
+		opReg |= 0x08;
+				
+		sendString("TX\r\n");
+		send_AD_HOC(opReg);
+	
+		sendString("DN\r\n");
+		opReg = 0;
+		opReg |= (0x01 << 8);
+		send_AD_HOC(opReg);
+		while (!((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE)) { }
+		SPI_data = SPI1->DR; 
+		//sendChar(SPI_data);
+
+		sendString("Read\r\n");
+
+		opReg = 0;
+		opReg |= (1 << 15);
+		opReg |= (1 << 8);
+	
+		// Set write mode
+		opReg |= 136;
+		
+		send_AD_HOC(opReg);
+		
+		opReg = 0;
+		opReg |= (0x01 << 8);
+		send_AD_HOC(opReg);
+		while (!((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE)) { }
+		SPI_data = SPI1->DR; 
+				
+		send_AD_HOC(opReg);
 
 	while(1) {
+		
 
-		I2C_Gyro_Read();
+
+		//I2C_Gyro_Read();
 
 	}
 }
