@@ -62,7 +62,11 @@ void sendChar(char output);
 void LED_On(int);
 void LED_Off(int);
 void LED_Toggle(int);
-void I2C_Gyro_Read(void);
+void I2C_Gyro_Read(void)
+void readLoRaData();
+uint8_t readSPIData();
+void readFromReg(uint8_t reg);
+void writeToReg(uint8_t reg, uint8_t data);
 
 
 /* USER CODE BEGIN PFP */
@@ -86,19 +90,14 @@ void LED_Toggle(int LED) {
 	GPIOC->ODR ^= (1 << LED);
 }
 
-
+/*
+*	Send the LoRa chip a 16-bit value
+*/
 void send_AD_HOC(uint16_t data){
 	while (!(((SPI1->SR & SPI_SR_TXE) == SPI_SR_TXE))) /* Test Tx empty */ { }
-	*(uint16_t *)&(SPI1->DR) = data; 
+	*(uint16_t *)&(SPI1->DR) = data;
 }
 
-void send_AD_String(char* output) {
-	int i = 0;
-	while (output[i] != '\0') {
-		send_AD_HOC(output[i]);
-		i++;
-	}
-}
 
 /*
  * Turn off the given LED.
@@ -114,6 +113,41 @@ void LED_On(int LED){
   GPIOC->ODR |= (1 << LED);
 }
 
+
+/*
+*	Turn the LoRa chip into LoRa mode.
+*/
+void initializeLoRa(){
+	uint16_t opReg = 0;
+	opReg |= (1 << 8);
+
+	// Set write mode to register 0x01 and write it into sleep mode
+	opReg |= (1 << 15);
+	opReg |= 0x08;
+
+	// Send the LoRa chip this data
+	send_AD_HOC(opReg);
+
+	// Read the first register from the LoRa chip to make sure it was enabled to sleep mode
+	opReg = 0;
+	opReg |= (0x01 << 8);
+	send_AD_HOC(opReg);
+
+	// Set write mode to the register address 0x01
+	opReg = 0;
+	opReg |= (1 << 15);
+	opReg |= (1 << 8);
+
+	// Enable LoRa and keep the LoRa registers enabled
+	opReg |= 136;
+
+	send_AD_HOC(opReg);
+
+	// Read from the register 0x01 to make sure LoRa mode was turned on
+	opReg = 0;
+	opReg |= (0x01 << 8);
+	send_AD_HOC(opReg);
+}
 
 /*
  * USART handler.
@@ -132,8 +166,69 @@ void EXTI4_15_IRQHandler() {
  * TMR Handler. Parses and sends the data using the radio chip.
  */
 void TIM2_IRQHandler (void) {
- 
   TIM2->SR = 0;
+}
+
+/*
+*	Used for reading data from the LoRa chip
+*/
+void readLoRaData(){
+	uint8_t returnData;
+
+	// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
+	readFromReg(0x12);
+	returnData = readSPIData();
+
+
+	if ((returnData & (1 << 7)) | (returnData & (1 << 5)) | (returnData & (1 << 4)) | (returnData & (1 << 6))){
+		// Bad data
+	}
+
+	// Read from RegRxNbBytes (0x13) reg (num of bytes to read)
+	readFromReg(0x13);
+	uint8_t bytesToRead = readSPIData();
+
+	// Set the RegFifoAddrPtr (0x0D) to RegFifoRxCurrentAddr (0x10)
+	readFromReg(0x10);
+	uint8_t address = readSPIData();
+	writeToReg(0x0D, address);
+
+	// Used to store the data read
+	char data[bytesToRead];
+	uint8_t i = 0
+
+	// Reading the register RegFifo (0x0), RegRxNbBytes times
+	while (bytesToRead != 0){
+		readFromReg(0x0);
+		data[i++] = readSPIData();
+		bytesToRead--;
+	}
+
+	sendString(data);
+
+}
+
+/*
+*	Read specific the data stored in the register that is sent as a parameter
+*/
+void readFromReg(uint8_t reg){
+	uint16_t dataRequest = 0;
+	dataRequest |= (reg << 8);
+	send_AD_HOC(dataRequest);
+}
+
+/*
+*	Write to the register that is given as input, and write to this register the data that is sent as a parameter
+*/
+void writeToReg(uint8_t reg, uint8_t data){
+	unint16_t dataRequest = 0;
+
+	// Set the write bit
+	dataRequest |= (1 << 15);
+
+	//Shift the data into the request and the register and then send it
+	dataRequest |= (reg << 8) | (data);
+	send_AD_HOC(dataRequest);
 }
 
 /*
@@ -143,7 +238,7 @@ int valid_GPS_data = 0;
 void USART1_IRQHandler() {
 	//turnOn(ORANGE);
 	char input = USART1->RDR;
-	
+
 	if (current_index <= 8) {
 		GPS_protocol[current_index] = input;
 	}
@@ -156,12 +251,12 @@ void USART1_IRQHandler() {
 			valid_GPS_data = 0;
 		}
 	}
-	
+
 	if (valid_GPS_data == 1) {
 		sendChar(input);
 		GPS_buff[current_index - 8] = input;
 	}
-	
+
 	// If a new line character is reached, then we know that all the data has been read by the module
 	if (input == '\n'){
 		GPS_buff[current_index] = '\0';
@@ -204,26 +299,33 @@ int compare(char* left, char* right, int length) {
 	return 1;
 }
 
+uint8_t readSPIData(){
+	// Wait until the buffer is not empty
+	while (!((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE)) {}
+
+	return (uint8_t)SPI1->DR; /* receive data, clear flag */
+}
+
 /*
  * Initialize I2C.
  */
 void I2C_Init() {
-	
+
 	// Turn PB11 and PB13  to AFM, and PB14 to GPOM
 	GPIOB->MODER |= (1 << 23) | (1 << 27) | (1 << 28);
-	
+
 	// Turn on PC0 to GPOM
 	GPIOC->MODER |= 1;
 	GPIOB->OTYPER |= (1 << 13) | (1 << 11);
-	
+
 	// Turn on PB11 to I2C2_SDA and PB13 to I2C2_SCL
 	GPIOB->AFR[1] |= (1 << 12) | (1 << 20) | (1 << 22);
 	GPIOB->ODR |= (1 << 14);
 	GPIOC->ODR |= 1;
-	
+
 	// Set up standard I2C mode
 	I2C2->TIMINGR |= (1 << 28) | (0x13) | (0xF << 8) | (0x2 << 16) | (0x4 << 20);
-	
+
 	// Enable the I2C peripheral using the PE bit in CR1 register
   I2C2->CR1 |= 1;
 
@@ -245,9 +347,6 @@ void I2C_Init() {
     // GOOD
   }
 
-	
-	
-	//turnOn(BLUE);
 
   // Send the correct WHO_AM_I information
   I2C2->TXDR = 0x0F;
@@ -327,7 +426,7 @@ void USART_Init() {
 /*
  * Initalize LEDs
  */
-void LED_Init() {  
+void LED_Init() {
 	//  LED CONFIGURATION
 	GPIOC->MODER 		|= (1 << 12) | (1 << 14) | (1 << 16) | (1 << 18);
 	GPIOC->MODER 		&= ~((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
@@ -345,70 +444,60 @@ void SPI_Init() {
 
 	// Setting pins PB3 to PB5 (SPI1_SCK, SPI1_MISO, & SPI1_MOSI respectively) on Alternate function Mode
 	GPIOB->MODER |= (1 << 7) | (1 << 9) | (1 << 11);
-	
-  // Set pin PA15 to alternate function mode for SPI1_NSS ** don't think we need this **
+
+  // Set pin PA15 to alternate function mode for SPI1_NSS
   GPIOA->MODER |= (0x2u << 30);
-	
+
 	/********* Write to SP1_CR1 register *********/
-	
-	
+
+
 	// a) Set Baud Rate to fPCLK/256
 	SPI1->CR1 |= (0x7 << 3);
-	
+
 	// b) CPOL 0 and CPHA 0, first rising edge
 	SPI1->CR1 &= ~((1 << 1) | (1 << 0));
 
 	// c) Set up SPI for Full-Duplex mode (bit 10 = 0)
 		SPI1->CR1 &= ~(1 << 10);
-	
-	
-	// d) Set the SSM bit so we can manually change the NSS bit
-	//SPI1->CR1 |= (1 << 9);
-	
-	// e) Set to 1 so we can't send data 
-	//SPI1->CR1 |= (1 << 8);
 
 	// g) Set Master Config.
 	SPI1->CR1 |= (1 << 2);
-	
+
 	/********* Write to SP1_CR2 register *********/
-	
+
 	// a) Set DS[3:0] bits to 16-bit data length transfer
 	SPI1->CR2 |= (0xF << 8);
-	
+
 	// b) SSOE enabled
 	SPI1->CR2 |= (1 << 2);
-	
+
 	// c) Enable NSSP bit for pulse generation
 	SPI1->CR2 |= (1 << 3);
-	
-	// c) FRF set to TI mode ** we want motorola mode I think ** 
-	// SPI1->CR2 |= (1 << 4);
-	
+
 	// Enable the interrupts for getting an interrupt of data received
 	SPI2->CR2 |= (1 << 6);
-	
+
 	// e) FRXTH (RXNE event is generated if the FIFO level is >= 1/2 ... 16-bit)
 	SPI1->CR2 &= ~(1 << 12);
-	
+
 	// SPI Enabled
 	SPI1->CR1 |= (1 << 6);
-	
+
 	/*			SPI EXTERNAL INTERRUPT SETUP 			*/
-	
+
 	GPIOB->PUPDR |= (1 << 25);
-	
-	// Enable EXTI0 to rising edge interrupt. 
+
+	// Enable EXTI0 to rising edge interrupt.
 	EXTI->IMR |= (1 << 12);
 	EXTI->RTSR |= (1 << 12);
 
 	// Set the SYSCNFG to EXTI4, PB 12
-	SYSCFG->EXTICR[3] |= (1 << 0); 
-	
+	SYSCFG->EXTICR[3] |= (1 << 0);
+
 	// Enable the EXIT0 interrupt line
 	NVIC_EnableIRQ(EXTI4_15_IRQn);
-	
-	// Set the priority to high for this interrupt. 
+
+	// Set the priority to high for this interrupt.
 	NVIC_SetPriority(EXTI4_15_IRQn, 3);
 }
 
@@ -439,19 +528,19 @@ void UART_GPS_Init(){
 
 /*
  * Initialize the timer. This will trigger data handeling for the GPS and send it to the
- * other STM board. 
+ * other STM board.
  */
 void TMR_Init() {
 	  // Divide the clock by 8000, and then count to 125 so the clock operates at 4 Hz
   TIM2->PSC = 19999;
   TIM2->ARR = 400;
-	
+
 	// Enable the UEV events for this timer
   TIM2->DIER = 1;
-	
+
 	// Configure and enable/start the timer
   TIM2->CR1 |= TIM_CR1_CEN;
-	
+
 	// Enable the interrupt
   NVIC_EnableIRQ(TIM2_IRQn);
 }
@@ -488,51 +577,10 @@ int main(void)
 
 	TMR_Init();
 
- // Wait 100 ms
- 
- 		uint16_t opReg = 0;
-		opReg |= (1 << 8);
-	
-		// Set write mode
-		opReg |= (1 << 15);
-		opReg |= 0x08;
-				
-		sendString("TX\r\n");
-		send_AD_HOC(opReg);
-	
-		sendString("DN\r\n");
-		opReg = 0;
-		opReg |= (0x01 << 8);
-		send_AD_HOC(opReg);
-		while (!((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE)) { }
-		SPI_data = SPI1->DR; 
-		//sendChar(SPI_data);
-
-		sendString("Read\r\n");
-
-		opReg = 0;
-		opReg |= (1 << 15);
-		opReg |= (1 << 8);
-	
-		// Set write mode
-		opReg |= 136;
-		
-		send_AD_HOC(opReg);
-		
-		opReg = 0;
-		opReg |= (0x01 << 8);
-		send_AD_HOC(opReg);
-		while (!((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE)) { }
-		SPI_data = SPI1->DR; 
-				
-		send_AD_HOC(opReg);
+	initializeLoRa();
 
 	while(1) {
-		
-
-
 		I2C_Gyro_Read();
-
 	}
 }
 
@@ -540,10 +588,10 @@ int main(void)
  * Read Gyro data via I2C.
  */
 void I2C_Gyro_Read(){
-	
+
 	  int16_t X_axis;
 		int16_t Y_axis;
-			
+
 		HAL_Delay(100);
 
     // Set the address to the correct peripheral.
