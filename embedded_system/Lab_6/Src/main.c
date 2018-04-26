@@ -251,12 +251,23 @@ void transmitLoRaData(char *data){
 uint8_t readLoRaData(){
 	uint8_t returnData;
 
+		// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
+	readFromReg(0x1D);
+	returnData = readSPIData();
+	
+	sendChar(returnData + 48);
+
 	// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
 	readFromReg(0x12);
 	returnData = readSPIData();
 
-
-	if ((returnData & (1 << 7)) | (returnData & (1 << 5)) | (returnData & (1 << 4)) | (returnData & (1 << 6))){
+	while (!(returnData & (1 << 6))) {	
+		// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
+		readFromReg(0x12);
+		returnData = readSPIData();
+	}
+	
+	if ((returnData & (1 << 7)) | (returnData & (1 << 5)) | (returnData & (1 << 4))){
 
 		// Reset all of the RegIrqFlags
 		writeToReg(0x12, 255);
@@ -661,13 +672,19 @@ int main(void)
 	SPI_Init();
 	// TMR_Init();
 	initializeLoRa();
+
 	resetLoRa();
 	readFromReg(0x01);
 	uint8_t address = readSPIData();
 	sendChar(address);
 
 	
+	enterReceiveMode();
+
+
+	
 	while(1) {
+		//readLoRaData();
 		transmitLoRaData("Hello");
 		//I2C_Gyro_Read();
 	}
