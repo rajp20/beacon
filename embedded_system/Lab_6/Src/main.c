@@ -62,9 +62,9 @@ void sendChar(char output);
 void LED_On(int);
 void LED_Off(int);
 void LED_Toggle(int);
-void I2C_Gyro_Read(void)
-void readLoRaData();
-uint8_t readSPIData();
+void I2C_Gyro_Read(void);
+uint8_t readLoRaData(void);
+uint8_t readSPIData(void);
 void readFromReg(uint8_t reg);
 void writeToReg(uint8_t reg, uint8_t data);
 
@@ -86,7 +86,7 @@ char SPI_data;
 /*
 * Returns the size of the string that is sent in as a parameter
 */
-uint8_t strlen(char *s){
+uint8_t length_str(char *s){
 	uint8_t i = 1;
 	while (s[i] != '\0'){i++;}
 	return i;
@@ -194,7 +194,7 @@ void TIM2_IRQHandler (void) {
 void transmitLoRaData(char *data){
 
 	// Length of the string to transmit
-	uint8_t length = strlen(data);
+	uint8_t length = length_str(data);
 	uint8_t i = 0;
 
 	// Send all of the bytes of the data that needs to be send
@@ -209,11 +209,11 @@ void transmitLoRaData(char *data){
 		writeToReg(0x0, data[i]);
 
 		// Enter the transmit state
-		writeToReg(0x01, 131)
+		writeToReg(0x01, 131);
 
 		// WAIT FOR TX TO FINISH
 		uint8_t TX_DONE_FLAG = (1 << 3);
-		readFromReg(0x12)
+		readFromReg(0x12);
 		while (!(readSPIData() & TX_DONE_FLAG)) {
 			readFromReg(0x12);
 		}
@@ -242,7 +242,7 @@ uint8_t readLoRaData(){
 
 		// Reset all of the RegIrqFlags
 		writeToReg(0x12, 255);
-		return -1;
+		return 0;
 	}
 
 	// Read from RegRxNbBytes (0x13) reg (num of bytes to read)
@@ -256,7 +256,7 @@ uint8_t readLoRaData(){
 
 	// Used to store the data read
 	char data[bytesToRead];
-	uint8_t i = 0
+	uint8_t i = 0;
 
 	// Reading the register RegFifo (0x0), RegRxNbBytes times
 	while (bytesToRead != 0){
@@ -282,7 +282,7 @@ void readFromReg(uint8_t reg){
 *	Write to the register that is given as input, and write to this register the data that is sent as a parameter
 */
 void writeToReg(uint8_t reg, uint8_t data){
-	unint16_t dataRequest = 0;
+	uint16_t dataRequest = 0;
 
 	// Set the write bit
 	dataRequest |= (1 << 15);
@@ -629,6 +629,7 @@ int main(void)
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
+	// Intialize all of the communication protocols and peripherals 
 	LED_Init();
 	USART_Init();
 	UART_GPS_Init();
