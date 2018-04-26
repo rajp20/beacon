@@ -84,6 +84,15 @@ int current_index;
 char SPI_data;
 
 /*
+* Returns the size of the string that is sent in as a parameter
+*/
+uint8_t strlen(char *s){
+	uint8_t i = 1;
+	while (s[i] != '\0'){i++;}
+	return i;
+}
+
+/*
  * Toggle the given LED.
  */
 void LED_Toggle(int LED) {
@@ -111,6 +120,13 @@ void LED_Off(int LED){
  */
 void LED_On(int LED){
   GPIOC->ODR |= (1 << LED);
+}
+
+/*
+*	Enter recieve mode to start receiving data and writing to the buffer
+*/
+void enterReceiveMode(){
+	writeToReg(0x01, 133);
 }
 
 
@@ -147,6 +163,9 @@ void initializeLoRa(){
 	opReg = 0;
 	opReg |= (0x01 << 8);
 	send_AD_HOC(opReg);
+
+	// Turn it back to standby mode
+	writeToReg(0x01, 137);
 }
 
 /*
@@ -170,9 +189,48 @@ void TIM2_IRQHandler (void) {
 }
 
 /*
-*	Used for reading data from the LoRa chip
+*	Used for sending data to the LoRa to send out
 */
-void readLoRaData(){
+void transmitLoRaData(char *data){
+
+	// Length of the string to transmit
+	uint8_t length = strlen(data);
+	uint8_t i = 0;
+
+	// Send all of the bytes of the data that needs to be send
+	while (i < length){
+
+		// Set the RegFifoAddrPtr (0x0D) to RegFifoTxCurrentAddr (0x0E)
+		readFromReg(0x0E);
+		uint8_t address = readSPIData();
+		writeToReg(0x0D, address);
+
+		// Write the string into the FIFO data buffer
+		writeToReg(0x0, data[i]);
+
+		// Enter the transmit state
+		writeToReg(0x01, 131)
+
+		// WAIT FOR TX TO FINISH
+		uint8_t TX_DONE_FLAG = (1 << 3);
+		readFromReg(0x12)
+		while (!(readSPIData() & TX_DONE_FLAG)) {
+			readFromReg(0x12);
+		}
+
+		// Reset the flags
+		writeToReg(0x12, TX_DONE_FLAG);
+
+		i++;
+	}
+
+
+}
+
+/*
+*	Used for reading data from the LoRa chip. Returns 0 if the data was read correctly, -1 if data was unable to be read
+*/
+uint8_t readLoRaData(){
 	uint8_t returnData;
 
 	// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
@@ -181,7 +239,10 @@ void readLoRaData(){
 
 
 	if ((returnData & (1 << 7)) | (returnData & (1 << 5)) | (returnData & (1 << 4)) | (returnData & (1 << 6))){
-		// Bad data
+
+		// Reset all of the RegIrqFlags
+		writeToReg(0x12, 255);
+		return -1;
 	}
 
 	// Read from RegRxNbBytes (0x13) reg (num of bytes to read)
@@ -205,7 +266,7 @@ void readLoRaData(){
 	}
 
 	sendString(data);
-
+	return 0;
 }
 
 /*
@@ -571,12 +632,9 @@ int main(void)
 	LED_Init();
 	USART_Init();
 	UART_GPS_Init();
-
 	I2C_Init();
 	SPI_Init();
-
 	TMR_Init();
-
 	initializeLoRa();
 
 	while(1) {
