@@ -204,7 +204,7 @@ void transmitLoRaData(char *data){
 		readFromReg(0x0E);
 		uint8_t address = readSPIData();
 		sendString("Addr: ");
-		sendChar(address);
+		sendChar(address + 48);
 		writeToReg(0x0D, address);
 
 		// Write the string into the FIFO data buffer
@@ -217,11 +217,11 @@ void transmitLoRaData(char *data){
 		uint8_t TX_DONE_FLAG = (1 << 3);
 		readFromReg(0x12);
 		char spi = readSPIData();
-		sendChar(spi);
+		sendChar(spi + 48);
 		while (!(readSPIData() & TX_DONE_FLAG)) {
 			readFromReg(0x12);
 			spi = readSPIData();
-			sendChar(spi);
+			sendChar(spi + 48);
 		}
 
 		// Reset the flags
