@@ -203,6 +203,8 @@ void transmitLoRaData(char *data){
 		// Set the RegFifoAddrPtr (0x0D) to RegFifoTxCurrentAddr (0x0E)
 		readFromReg(0x0E);
 		uint8_t address = readSPIData();
+		sendString("Addr: ");
+		sendChar(address);
 		writeToReg(0x0D, address);
 
 		// Write the string into the FIFO data buffer
@@ -211,11 +213,15 @@ void transmitLoRaData(char *data){
 		// Enter the transmit state
 		writeToReg(0x01, 131);
 
-		// WAIT FOR TX TO FINISH
+		// WAIT FOR TX TO FINISH (3rd bit)
 		uint8_t TX_DONE_FLAG = (1 << 3);
 		readFromReg(0x12);
+		char spi = readSPIData();
+		sendChar(spi);
 		while (!(readSPIData() & TX_DONE_FLAG)) {
 			readFromReg(0x12);
+			spi = readSPIData();
+			sendChar(spi);
 		}
 
 		// Reset the flags
@@ -631,15 +637,16 @@ int main(void)
 
 	// Intialize all of the communication protocols and peripherals 
 	LED_Init();
-	USART_Init();
-	UART_GPS_Init();
-	I2C_Init();
+	//USART_Init();
+	//UART_GPS_Init();
+	//I2C_Init();
 	SPI_Init();
-	TMR_Init();
+	// TMR_Init();
 	initializeLoRa();
 
 	while(1) {
-		I2C_Gyro_Read();
+		transmitLoRaData("Hello");
+		//I2C_Gyro_Read();
 	}
 }
 
