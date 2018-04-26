@@ -219,7 +219,7 @@ void transmitLoRaData(char *data){
 		char spi = readSPIData();
 		sendString("Data: ");
 		sendChar(spi + 48);
-		while (!(readSPIData() & TX_DONE_FLAG)) {
+		while (!(spi & TX_DONE_FLAG)) {
 			readFromReg(0x12);
 			spi = readSPIData();
 			sendString("Data: ");
