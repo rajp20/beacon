@@ -67,6 +67,7 @@ uint8_t readLoRaData(void);
 uint8_t readSPIData(void);
 void readFromReg(uint8_t reg);
 void writeToReg(uint8_t reg, uint8_t data);
+void resetLoRa(void);
 
 
 /* USER CODE BEGIN PFP */
@@ -129,6 +130,12 @@ void enterReceiveMode(){
 	writeToReg(0x01, 133);
 }
 
+void resetLoRa() {
+	
+	GPIOB->ODR ^= (1 << 6);
+	HAL_Delay(100);
+	GPIOB->ODR ^= (1 << 6);
+}
 
 /*
 *	Turn the LoRa chip into LoRa mode.
@@ -231,6 +238,7 @@ void transmitLoRaData(char *data){
 
 		
 		sendString("Sent one char!");
+		sendChar(data[i]);
 		i++;
 	}
 
@@ -515,6 +523,12 @@ void SPI_Init() {
 
 	// Setting pins PB3 to PB5 (SPI1_SCK, SPI1_MISO, & SPI1_MOSI respectively) on Alternate function Mode
 	GPIOB->MODER |= (1 << 7) | (1 << 9) | (1 << 11);
+	
+	// Set pin PB6 (reset) to GPOM
+	GPIOB->MODER |= (1 << 12);
+	
+	// Set reset pin low;
+	GPIOB->ODR &= ~(1 << 6);
 
   // Set pin PA15 to alternate function mode for SPI1_NSS
   GPIOA->MODER |= (0x2u << 30);
@@ -647,7 +661,12 @@ int main(void)
 	SPI_Init();
 	// TMR_Init();
 	initializeLoRa();
+	resetLoRa();
+	readFromReg(0x01);
+	uint8_t address = readSPIData();
+	sendChar(address);
 
+	
 	while(1) {
 		transmitLoRaData("Hello");
 		//I2C_Gyro_Read();
