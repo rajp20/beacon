@@ -217,16 +217,20 @@ void transmitLoRaData(char *data){
 		uint8_t TX_DONE_FLAG = (1 << 3);
 		readFromReg(0x12);
 		char spi = readSPIData();
+		sendString("Data: ");
 		sendChar(spi + 48);
 		while (!(readSPIData() & TX_DONE_FLAG)) {
 			readFromReg(0x12);
 			spi = readSPIData();
+			sendString("Data: ");
 			sendChar(spi + 48);
 		}
 
 		// Reset the flags
 		writeToReg(0x12, TX_DONE_FLAG);
 
+		
+		sendString("Sent one char!");
 		i++;
 	}
 
