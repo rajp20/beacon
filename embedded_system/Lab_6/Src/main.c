@@ -637,7 +637,7 @@ int main(void)
 
 	// Intialize all of the communication protocols and peripherals 
 	LED_Init();
-	//USART_Init();
+	USART_Init();
 	//UART_GPS_Init();
 	//I2C_Init();
 	SPI_Init();
