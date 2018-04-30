@@ -131,7 +131,7 @@ void enterReceiveMode(){
 }
 
 void resetLoRa() {
-	
+
 	GPIOB->ODR ^= (1 << 6);
 	HAL_Delay(100);
 	GPIOB->ODR ^= (1 << 6);
@@ -173,6 +173,23 @@ void initializeLoRa(){
 
 	// Turn it back to standby mode
 	writeToReg(0x01, 137);
+
+	// Set the frequency
+	int frequency = 915 * 1000000; // 915 MHz
+
+	int FXOSC = 32000000; // 32 MHz
+	int FSTEP = FXOSC / 524288; // Step frequency
+
+	int frf = (frequency) / FSTEP;
+	uint8_t msb = (frf >> 16);
+	uint8_t mid = ((frf >> 8) & 0xFF);
+	uint8_t lsb = (frf & 0xFF);
+
+	// Set the frequency to 915 MHz
+	writeToReg(0x06, msb);
+	writeToReg(0x07, mid);
+	writeToReg(0x08, lsb);
+
 }
 
 /*
@@ -236,7 +253,7 @@ void transmitLoRaData(char *data){
 		// Reset the flags
 		writeToReg(0x12, TX_DONE_FLAG);
 
-		
+
 		sendString("Sent one char!");
 		sendChar(data[i]);
 		i++;
@@ -254,19 +271,19 @@ uint8_t readLoRaData(){
 		// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
 	readFromReg(0x1D);
 	returnData = readSPIData();
-	
+
 	sendChar(returnData + 48);
 
 	// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
 	readFromReg(0x12);
 	returnData = readSPIData();
 
-	while (!(returnData & (1 << 6))) {	
+	while (!(returnData & (1 << 6))) {
 		// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
 		readFromReg(0x12);
 		returnData = readSPIData();
 	}
-	
+
 	if ((returnData & (1 << 7)) | (returnData & (1 << 5)) | (returnData & (1 << 4))){
 
 		// Reset all of the RegIrqFlags
@@ -534,10 +551,10 @@ void SPI_Init() {
 
 	// Setting pins PB3 to PB5 (SPI1_SCK, SPI1_MISO, & SPI1_MOSI respectively) on Alternate function Mode
 	GPIOB->MODER |= (1 << 7) | (1 << 9) | (1 << 11);
-	
+
 	// Set pin PB6 (reset) to GPOM
 	GPIOB->MODER |= (1 << 12);
-	
+
 	// Set reset pin low;
 	GPIOB->ODR &= ~(1 << 6);
 
@@ -580,6 +597,8 @@ void SPI_Init() {
 	SPI1->CR1 |= (1 << 6);
 
 	/*			SPI EXTERNAL INTERRUPT SETUP 			*/
+
+	// PB 12 input mode
 
 	GPIOB->PUPDR |= (1 << 25);
 
@@ -664,7 +683,7 @@ int main(void)
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
-	// Intialize all of the communication protocols and peripherals 
+	// Intialize all of the communication protocols and peripherals
 	LED_Init();
 	USART_Init();
 	//UART_GPS_Init();
@@ -678,11 +697,11 @@ int main(void)
 	uint8_t address = readSPIData();
 	sendChar(address);
 
-	
+
 	enterReceiveMode();
 
 
-	
+
 	while(1) {
 		//readLoRaData();
 		transmitLoRaData("Hello");
