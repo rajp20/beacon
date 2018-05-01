@@ -127,6 +127,10 @@ void LED_On(int LED){
 *	Enter recieve mode to start receiving data and writing to the buffer
 */
 void enterReceiveMode(){
+	// Set the correct DIO configuration to 0 (receive interrupt will enable now)
+	writeToReg(0x40, 0x00);
+
+	// Enter conditions receive mode
 	writeToReg(0x01, 133);
 }
 
@@ -181,7 +185,7 @@ void initializeLoRa(){
 	int FSTEP = FXOSC / 524288; // Step frequency
 
 	int frf = (frequency) / FSTEP;
-	uint8_t msb = (frf >> 16);
+	uint8_t msb = ((frf >> 16) & 0xFF);
 	uint8_t mid = ((frf >> 8) & 0xFF);
 	uint8_t lsb = (frf & 0xFF);
 
@@ -189,6 +193,15 @@ void initializeLoRa(){
 	writeToReg(0x06, msb);
 	writeToReg(0x07, mid);
 	writeToReg(0x08, lsb);
+
+	// Set the preamble length to 8
+	int preamble_length = 8;
+	msb = ((preamble_length >> 8) & 0xFF);
+	lsb = (preamble_length & 0xFF);
+
+	// Write the preamble length into the registers
+	writeToReg(0x20, msb);
+	writeToReg(0x21, lsb);
 
 }
 
@@ -220,6 +233,23 @@ void transmitLoRaData(char *data){
 	// Length of the string to transmit
 	uint8_t length = length_str(data);
 	uint8_t i = 0;
+
+	// Set the correct DIO configuration to 1 (transmit interrupt will enable now)
+	writeToReg(0x40, 0x01);
+
+	// Set output power to 23 dB
+	uint8_t power = 23; 	// dB
+	uint8_t reg_value = (power - 5) & 0x0F;	// power value is > 5, but 23 < (goes in lower 4 bits)
+	reg_value |= (1 << 7);	// Turn on the PA_BOOST pin 
+	writeToReg(0x09, reg_value);
+
+	// ENABLE THE DAC (only if power > 23, otherwise disable it)
+	if (power > 20){
+		writeToReg(0x4D, 0x07);
+	}
+	else {
+		writeToReg(0x4F, 0x04);
+	}
 
 	// Send all of the bytes of the data that needs to be send
 	while (i < length){
