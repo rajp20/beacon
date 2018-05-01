@@ -283,7 +283,7 @@ uint8_t readLoRaData(){
 	uint8_t returnData;
 
 	while (!(GPIO_IDR_12)) { }
-	
+
 	// Clear the buffer before reading
 	if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
 			returnData = (uint8_t)SPI1->DR; /* receive data, clear flag */
@@ -297,7 +297,7 @@ uint8_t readLoRaData(){
 	if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
 			returnData = (uint8_t)SPI1->DR; /* receive data, clear flag */
 	}
-	
+
 	// Set the RegFifoAddrPtr (0x0D) to RegFifoRxCurrentAddr (0x10)
 	readFromReg(0x10);
 	uint8_t address = readSPIData();
@@ -688,17 +688,12 @@ int main(void)
 
 	// Intialize all of the communication protocols and peripherals
 	LED_Init();
-	//USART_Init();
-	//UART_GPS_Init();
-	//I2C_Init();
+	USART_Init();
+	UART_GPS_Init();
+	I2C_Init();
 	SPI_Init();
-	// TMR_Init();
+	TMR_Init();
 	initializeLoRa();
-
-	//resetLoRa();
-	// readFromReg(0x01);
-	// uint8_t address = readSPIData();
-	// sendChar(address);
 
 
 	//enterReceiveMode();
@@ -708,7 +703,7 @@ int main(void)
 	while(1) {
 		//readLoRaData();
 		transmitLoRaData("Hello");
-		//I2C_Gyro_Read();
+		I2C_Gyro_Read();
 	}
 }
 
