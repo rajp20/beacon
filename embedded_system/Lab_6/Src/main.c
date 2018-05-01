@@ -145,35 +145,15 @@ void resetLoRa() {
 *	Turn the LoRa chip into LoRa mode.
 */
 void initializeLoRa(){
-	uint16_t opReg = 0;
-	opReg |= (1 << 8);
 
 	// Set write mode to register 0x01 and write it into sleep mode
-	opReg |= (1 << 15);
-	opReg |= 0x08;
+	writeToReg(0x01, 0);
 
-	// Send the LoRa chip this data
-	send_AD_HOC(opReg);
-
-	// Read the first register from the LoRa chip to make sure it was enabled to sleep mode
-	opReg = 0;
-	opReg |= (0x01 << 8);
-	send_AD_HOC(opReg);
-
-	// Set write mode to the register address 0x01
-	opReg = 0;
-	opReg |= (1 << 15);
-	opReg |= (1 << 8);
-
-	// Enable LoRa and keep the LoRa registers enabled
-	opReg |= 136;
-
-	send_AD_HOC(opReg);
-
-	// Read from the register 0x01 to make sure LoRa mode was turned on
-	opReg = 0;
-	opReg |= (0x01 << 8);
-	send_AD_HOC(opReg);
+	// Set to LoRa mode
+	writeToReg(0x01, 128);
+	
+	// Read to make sure it is in LoRa mode
+	readFromReg(0x01);
 
 	// Turn it back to standby mode
 	writeToReg(0x01, 137);
@@ -235,7 +215,7 @@ void transmitLoRaData(char *data){
 	uint8_t i = 0;
 
 	// Set the correct DIO configuration to 1 (transmit interrupt will enable now)
-	writeToReg(0x40, 0x01);
+	writeToReg(0x40, 64);
 
 	// Set output power to 23 dB
 	uint8_t power = 23; 	// dB
@@ -251,14 +231,23 @@ void transmitLoRaData(char *data){
 		writeToReg(0x4F, 0x04);
 	}
 
+	uint8_t address;
+	
 	// Send all of the bytes of the data that needs to be send
 	while (i < length){
+		
 
-		// Set the RegFifoAddrPtr (0x0D) to RegFifoTxCurrentAddr (0x0E)
+		// Set the RegFifoAddrPtr (0x0D) to RegFifoTxCurrentAddr (0x0E);
+		
+		// Clear the buffer before reading
+		if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
+			address = (uint8_t)SPI1->DR; /* receive data, clear flag */
+		}
+
 		readFromReg(0x0E);
-		uint8_t address = readSPIData();
-		sendString("Addr: ");
-		sendChar(address + 48);
+		address = readSPIData();
+		//sendString("Addr: ");
+		//sendChar(address + 48);
 		writeToReg(0x0D, address);
 
 		// Write the string into the FIFO data buffer
@@ -268,14 +257,17 @@ void transmitLoRaData(char *data){
 		writeToReg(0x01, 131);
 
 		// WAIT FOR TX TO FINISH (3rd bit)
-		while (!(GPIOB->IDR & 4096)) { }
+		while (!(GPIOB->IDR & 4096)) { 
+			readFromReg(0x01);
+			readFromReg(0x12);
+		}
 
 		// Reset the flags
-		writeToReg(0x12, TX_DONE_FLAG);
+		writeToReg(0x12, 0xFF);
 
 
-		sendString("Sent one char!");
-		sendChar(data[i]);
+		//sendString("Sent one char!");
+		//sendChar(data[i]);
 		i++;
 	}
 
