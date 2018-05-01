@@ -82,7 +82,8 @@ char GPS_buff[256];
 char GPS_protocol[8];
 int current_index;
 
-char SPI_data;
+char transmitDone;
+char recieveDone;
 
 /*
 * Returns the size of the string that is sent in as a parameter
@@ -151,7 +152,7 @@ void initializeLoRa(){
 
 	// Set to LoRa mode
 	writeToReg(0x01, 128);
-	
+
 	// Read to make sure it is in LoRa mode
 	readFromReg(0x01);
 
@@ -232,13 +233,13 @@ void transmitLoRaData(char *data){
 	}
 
 	uint8_t address;
-	
+
 	// Send all of the bytes of the data that needs to be send
 	while (i < length){
-		
+
 
 		// Set the RegFifoAddrPtr (0x0D) to RegFifoTxCurrentAddr (0x0E);
-		
+
 		// Clear the buffer before reading
 		if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
 			address = (uint8_t)SPI1->DR; /* receive data, clear flag */
@@ -257,7 +258,7 @@ void transmitLoRaData(char *data){
 		writeToReg(0x01, 131);
 
 		// WAIT FOR TX TO FINISH (3rd bit)
-		while (!(GPIOB->IDR & 4096)) { 
+		while (!(GPIOB->IDR & 4096)) {
 			readFromReg(0x01);
 			readFromReg(0x12);
 		}
