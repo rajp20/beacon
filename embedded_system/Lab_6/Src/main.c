@@ -246,6 +246,7 @@ void transmitLoRaData(char *data){
 		}
 
 		readFromReg(0x0E);
+		HAL_Delay(2);
 		address = readSPIData();
 		//sendString("Addr: ");
 		//sendChar(address + 48);
@@ -258,7 +259,7 @@ void transmitLoRaData(char *data){
 		writeToReg(0x01, 131);
 
 		// WAIT FOR TX TO FINISH (3rd bit)
-		while (!(GPIOB->IDR & 4096)) {
+		while (!(GPIO_IDR_12)) {
 			readFromReg(0x01);
 			readFromReg(0x12);
 		}
@@ -281,33 +282,22 @@ void transmitLoRaData(char *data){
 uint8_t readLoRaData(){
 	uint8_t returnData;
 
-		// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
-	readFromReg(0x1D);
-	returnData = readSPIData();
-
-	sendChar(returnData + 48);
-
-	// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
-	readFromReg(0x12);
-	returnData = readSPIData();
-
-	while (!(returnData & (1 << 6))) {
-		// Ensure that ValidHeader, PayloadCrcError, RxDone and RxTimeout interrupts in the status register RegIrqFlags are not asserted (otherwise ignore the data)
-		readFromReg(0x12);
-		returnData = readSPIData();
-	}
-
-	if ((returnData & (1 << 7)) | (returnData & (1 << 5)) | (returnData & (1 << 4))){
-
-		// Reset all of the RegIrqFlags
-		writeToReg(0x12, 255);
-		return 0;
+	while (!(GPIO_IDR_12)) { }
+	
+	// Clear the buffer before reading
+	if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
+			returnData = (uint8_t)SPI1->DR; /* receive data, clear flag */
 	}
 
 	// Read from RegRxNbBytes (0x13) reg (num of bytes to read)
 	readFromReg(0x13);
 	uint8_t bytesToRead = readSPIData();
 
+	// Clear the buffer before reading
+	if ((SPI1->SR & SPI_SR_RXNE) == SPI_SR_RXNE) {
+			returnData = (uint8_t)SPI1->DR; /* receive data, clear flag */
+	}
+	
 	// Set the RegFifoAddrPtr (0x0D) to RegFifoRxCurrentAddr (0x10)
 	readFromReg(0x10);
 	uint8_t address = readSPIData();
