@@ -240,7 +240,7 @@ void transmitLoRaData(char *data){
 	// Set output power to 23 dB
 	uint8_t power = 23; 	// dB
 	uint8_t reg_value = (power - 5) & 0x0F;	// power value is > 5, but 23 < (goes in lower 4 bits)
-	reg_value |= (1 << 7);	// Turn on the PA_BOOST pin 
+	reg_value |= (1 << 7);	// Turn on the PA_BOOST pin
 	writeToReg(0x09, reg_value);
 
 	// ENABLE THE DAC (only if power > 23, otherwise disable it)
@@ -268,17 +268,7 @@ void transmitLoRaData(char *data){
 		writeToReg(0x01, 131);
 
 		// WAIT FOR TX TO FINISH (3rd bit)
-		uint8_t TX_DONE_FLAG = (1 << 3);
-		readFromReg(0x12);
-		char spi = readSPIData();
-		sendString("Data: ");
-		sendChar(spi + 48);
-		while (!(spi & TX_DONE_FLAG)) {
-			readFromReg(0x12);
-			spi = readSPIData();
-			sendString("Data: ");
-			sendChar(spi + 48);
-		}
+		while (!(GPIOB->IDR & 4096)) { }
 
 		// Reset the flags
 		writeToReg(0x12, TX_DONE_FLAG);
